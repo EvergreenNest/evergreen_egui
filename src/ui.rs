@@ -1,12 +1,15 @@
 //! Provides types and traits for rendering UI elements inside a [`World`].
 
-use std::ops::{Deref, DerefMut, IndexMut};
+use std::{
+    hash::Hash,
+    ops::{Deref, DerefMut, IndexMut},
+};
 
 use bevy_ecs::{
     system::{IntoSystem, RegisteredSystemError, System, SystemInput},
     world::World,
 };
-use egui::{InnerResponse, Ui};
+use egui::{CollapsingResponse, InnerResponse, Ui, UiBuilder, WidgetText};
 
 use crate::{
     prelude::Container,
@@ -148,119 +151,205 @@ impl WorldUi<'_, '_, Ui> {
     pub fn show<C: Container, R>(
         &mut self,
         container: C,
-        f: impl FnOnce(WorldUi<'_, '_, C::Ui>) -> R,
+        add_contents: impl FnOnce(WorldUi<'_, '_, C::Ui>) -> R,
     ) -> C::Out<R> {
-        container.show(self.reborrow(), f)
+        container.show(self.reborrow(), add_contents)
+    }
+
+    /// [`Ui::group`] with [`World`] access.
+    pub fn group<R>(
+        &mut self,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.group(|ui| {
+            let ui = WorldUi::new(world, ui);
+            add_contents(ui)
+        })
+    }
+
+    /// [`Ui::scope`] with [`World`] access.
+    pub fn scope<R>(
+        &mut self,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.scope(|ui| {
+            let ui = WorldUi::new(world, ui);
+            add_contents(ui)
+        })
+    }
+
+    /// [`Ui::scope_builder`] with [`World`] access.
+    pub fn scope_builder<R>(
+        &mut self,
+        ui_builder: UiBuilder,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.scope_builder(ui_builder, |ui| {
+            let ui = WorldUi::new(world, ui);
+            add_contents(ui)
+        })
+    }
+
+    /// [`Ui::collapsing`] with [`World`] access.
+    pub fn collapsing<R>(
+        &mut self,
+        heading: impl Into<WidgetText>,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> CollapsingResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.collapsing(heading, |ui| {
+            let ui = WorldUi::new(world, ui);
+            add_contents(ui)
+        })
+    }
+
+    /// [`Ui::indent`] with [`World`] access.
+    pub fn indent<R>(
+        &mut self,
+        id_salt: impl Hash,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.indent(id_salt, |ui| {
+            let ui = WorldUi::new(world, ui);
+            add_contents(ui)
+        })
     }
 
     /// [`Ui::horizontal`] with [`World`] access.
-    pub fn horizontal<R>(&mut self, f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R) -> InnerResponse<R> {
+    pub fn horizontal<R>(
+        &mut self,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
         let (world, ui) = self.reborrow().into_parts();
         ui.horizontal(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::horizontal_centered`] with [`World`] access.
     pub fn horizontal_centered<R>(
         &mut self,
-        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
     ) -> InnerResponse<R> {
         let (world, ui) = self.reborrow().into_parts();
         ui.horizontal_centered(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::horizontal_top`] with [`World`] access.
     pub fn horizontal_top<R>(
         &mut self,
-        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
     ) -> InnerResponse<R> {
         let (world, ui) = self.reborrow().into_parts();
         ui.horizontal_top(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::horizontal_wrapped`] with [`World`] access.
     pub fn horizontal_wrapped<R>(
         &mut self,
-        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
     ) -> InnerResponse<R> {
         let (world, ui) = self.reborrow().into_parts();
         ui.horizontal_wrapped(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::vertical`] with [`World`] access.
-    pub fn vertical<R>(&mut self, f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R) -> InnerResponse<R> {
+    pub fn vertical<R>(
+        &mut self,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
         let (world, ui) = self.reborrow().into_parts();
         ui.vertical(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::vertical_centered`] with [`World`] access.
     pub fn vertical_centered<R>(
         &mut self,
-        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
     ) -> InnerResponse<R> {
         let (world, ui) = self.reborrow().into_parts();
         ui.vertical_centered(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::vertical_top`] with [`World`] access.
     pub fn vertical_centered_justified<R>(
         &mut self,
-        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
     ) -> InnerResponse<R> {
         let (world, ui) = self.reborrow().into_parts();
         ui.vertical_centered_justified(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::centered_and_justified`] with [`World`] access.
     pub fn centered_and_justified<R>(
         &mut self,
-        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
     ) -> InnerResponse<R> {
         let (world, ui) = self.reborrow().into_parts();
         ui.centered_and_justified(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::group`] with [`World`] access.
-    pub fn columns<R>(&mut self, columns: usize, f: impl FnOnce(WorldUi<'_, '_, [Ui]>) -> R) -> R {
+    pub fn columns<R>(
+        &mut self,
+        columns: usize,
+        add_contents: impl FnOnce(WorldUi<'_, '_, [Ui]>) -> R,
+    ) -> R {
         let (world, ui) = self.reborrow().into_parts();
         ui.columns(columns, |ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
         })
     }
 
     /// [`Ui::columns`] with a constant number of columns.
     pub fn columns_const<const NUM_COL: usize, R>(
         &mut self,
-        f: impl FnOnce(WorldUi<'_, '_, [Ui; NUM_COL]>) -> R,
+        add_contents: impl FnOnce(WorldUi<'_, '_, [Ui; NUM_COL]>) -> R,
     ) -> R {
         let (world, ui) = self.reborrow().into_parts();
         ui.columns_const(|ui| {
             let ui = WorldUi::new(world, ui);
-            f(ui)
+            add_contents(ui)
+        })
+    }
+
+    /// [`Ui::menu_button`] with [`World`] access.
+    pub fn menu_button<R>(
+        &mut self,
+        title: impl Into<WidgetText>,
+        add_contents: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<Option<R>> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.menu_button(title, |ui| {
+            let ui = WorldUi::new(world, ui);
+            add_contents(ui)
         })
     }
 }
