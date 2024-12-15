@@ -1,98 +1,244 @@
 //! Containers for grouping widgets together.
 
-use bevy::prelude::World;
-use egui::{frame::Prepared, Frame, Layout, Response, Sense, Ui, UiBuilder};
+use egui::{
+    menu::SubMenu, scroll_area::ScrollAreaOutput, CollapsingHeader, CollapsingResponse, ComboBox,
+    Frame, InnerResponse, Layout, Resize, ScrollArea, Ui, UiBuilder,
+};
 
-use crate::ui::UiData;
+use crate::ui::WorldUi;
 
-/// Trait for types that can be converted into two halves of a container.
-pub trait IntoContainer {
-    /// The first half of the container.
-    type BeginContainer: BeginContainer;
+/// Trait for types that can be used as containers for grouping widgets together.
+pub trait Container {
+    /// The type of [`Ui`] that this container provides inside the closure.
+    type Ui: ?Sized;
 
-    /// The second half of the container.
-    type EndContainer: EndContainer<Data = <Self::BeginContainer as BeginContainer>::Data>;
+    /// The output type of the container. `R` is the output type of the closure.
+    type Out<R>;
 
-    /// Converts this object into two halves of a container.
-    fn into_container(self) -> (Self::BeginContainer, Self::EndContainer);
+    /// Renders this container and calls the given closure with a [`WorldUi`]
+    /// that can be used to render UI elements inside the container.
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R>;
 }
 
-impl<C, D> IntoContainer for C
-where
-    C: BeginContainer<Data = D> + EndContainer<Data = D> + Clone,
-    D: UiData,
-{
-    type BeginContainer = C;
-    type EndContainer = C;
+impl Container for Layout {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
 
-    fn into_container(self) -> (Self::BeginContainer, Self::EndContainer) {
-        (self.clone(), self)
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        ui.with_layout(self, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
     }
 }
 
-/// The first half of a container.
-pub trait BeginContainer: Send + 'static {
-    /// The data type returned by [`BeginContainer::begin`].
-    type Data: UiData;
+impl Container for ComboBox {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<Option<R>>;
 
-    /// Starts a new container and returns the data needed to end it.
-    fn begin(self, world: &World, parent: &mut Ui) -> Self::Data;
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        self.show_ui(ui, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
 }
 
-/// The second half of a container.
-pub trait EndContainer: Send + 'static {
-    /// The data type accepted by [`EndContainer::end`].
-    type Data: UiData;
+impl Container for Resize {
+    type Ui = Ui;
+    type Out<R> = R;
 
-    /// Ends the container and returns the [`egui::Response`] from the container.
-    fn end(self, world: &World, parent: &mut Ui, data: Self::Data) -> Response;
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        self.show(ui, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
 }
 
-/// A container that wraps a group of widgets with [`Frame::group`].
-#[derive(Clone)]
+impl Container for Frame {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
+
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        self.show(ui, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+}
+
+impl Container for ScrollArea {
+    type Ui = Ui;
+    type Out<R> = ScrollAreaOutput<R>;
+
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        self.show(ui, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+}
+
+impl Container for CollapsingHeader {
+    type Ui = Ui;
+    type Out<R> = CollapsingResponse<R>;
+
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        self.show(ui, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+}
+
+impl Container for SubMenu {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<Option<R>>;
+
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        self.show(ui, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+}
+
+/// [`Container`] that renders `COLS` columns. `COLS` can either be a
+/// runtime-specified `usize` or a compile-time-specified [`Const<N>`].
+pub struct Columns<COLS>(pub COLS);
+
+impl Container for Columns<usize> {
+    type Ui = [Ui];
+    type Out<R> = R;
+
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        ui.columns(self.0, move |columns| {
+            let ui = WorldUi::new(world, columns);
+            f(ui)
+        })
+    }
+}
+
+/// Specifies a constant number of [`Columns`].
+pub struct Const<const N: usize>;
+
+impl<const N: usize> Container for Columns<Const<N>> {
+    type Ui = [Ui; N];
+    type Out<R> = R;
+
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        ui.columns_const::<N, _>(move |columns| {
+            let ui = WorldUi::new(world, columns);
+            f(ui)
+        })
+    }
+}
+
+/// [`Container`] that renders a maybe-enabled UI.
+pub struct Enabled(pub bool);
+
+impl Container for Enabled {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
+
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        ui.add_enabled_ui(self.0, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+}
+
+impl Container for UiBuilder {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
+
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        ui.scope_builder(self, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+}
+
+/// [`Container`] that groups [`Widget`]s together with [`Ui::group`].
+///
+/// [`Widget`]: crate::widget::Widget
 pub struct Group;
 
-#[doc(hidden)]
-pub struct GroupData(Prepared);
+impl Container for Group {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
 
-impl UiData for GroupData {
-    fn ui(&self) -> &egui::Ui {
-        &self.0.content_ui
-    }
-
-    fn ui_mut(&mut self) -> &mut egui::Ui {
-        &mut self.0.content_ui
-    }
-}
-
-impl BeginContainer for Group {
-    type Data = GroupData;
-
-    fn begin(self, _world: &World, parent: &mut Ui) -> Self::Data {
-        GroupData(Frame::group(parent.style()).begin(parent))
-    }
-}
-
-impl EndContainer for Group {
-    type Data = GroupData;
-
-    fn end(self, _world: &World, parent: &mut Ui, data: Self::Data) -> Response {
-        data.0.end(parent)
-    }
-}
-
-impl BeginContainer for Layout {
-    type Data = Ui;
-
-    fn begin(self, _world: &World, parent: &mut Ui) -> Self::Data {
-        parent.new_child(UiBuilder::new().layout(self))
-    }
-}
-
-impl EndContainer for Layout {
-    type Data = Ui;
-
-    fn end(self, _world: &World, parent: &mut Ui, child_ui: Self::Data) -> Response {
-        parent.allocate_rect(child_ui.min_rect(), Sense::hover())
+    fn show<'world, R>(
+        self,
+        ui: WorldUi<'world, '_>,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        let (world, ui) = ui.into_parts();
+        ui.group(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
     }
 }

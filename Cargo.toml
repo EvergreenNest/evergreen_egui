@@ -4,12 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.15"
+bevy_ecs = "0.15"
+bevy_log = "0.15"
+variadics_please = "1.0"
 bevy_egui = "0.31"
 egui = "0.29"
-downcast-rs = "1.2"
-parking_lot = "0.12.3"
 
-[patch.crates-io]
-egui = { git = "https://github.com/ItsDoot/egui.git", rev = "2b90694" }
-# egui = { path = "../egui/crates/egui" }
+[dev-dependencies]
+bevy = "0.15"

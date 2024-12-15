@@ -1,166 +1,110 @@
 //! Types and traits for creating root containers with which to build UIs.
 
-use bevy::prelude::World;
-use egui::{
-    panel::{PreparedCentralPanel, PreparedSidePanel, PreparedTopBottomPanel},
-    CentralPanel, Context, SidePanel, TopBottomPanel,
-};
+use bevy_ecs::world::World;
+use egui::{Area, CentralPanel, Context, InnerResponse, SidePanel, TopBottomPanel, Ui, Window};
 
-use crate::ui::UiData;
+use crate::ui::WorldUi;
 
-/// Conversion trait to turn something into a root container.
-pub trait IntoRoot {
-    /// The first half of the root container.
-    type Begin: BeginRoot;
+/// Trait for types that can be used as root containers (e.g. windows, panels).
+pub trait Root {
+    /// The type of [`Ui`] that this root container provides.
+    type Ui: ?Sized;
 
-    /// The second half of the root container.
-    type End: EndRoot<Data = <Self::Begin as BeginRoot>::Data>;
+    /// The output type of the root container. `R` is the output type of the
+    /// closure.
+    type Out<R>;
 
-    /// Converts this value into two halves of a root container.
-    fn into_root(self) -> (Self::Begin, Self::End);
+    /// Shows this root container and calls the given closure with a [`WorldUi`]
+    /// that can be used to render UI elements inside the root.
+    fn show<'world, R>(
+        self,
+        world: &'world mut World,
+        ctx: &Context,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R>;
 }
 
-impl<R, RD> IntoRoot for R
-where
-    R: BeginRoot<Data = RD> + EndRoot<Data = RD> + Clone,
-    RD: UiData,
-{
-    type Begin = R;
-    type End = R;
+impl Root for CentralPanel {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
 
-    fn into_root(self) -> (Self::Begin, Self::End) {
-        (self.clone(), self)
+    fn show<'world, R>(
+        self,
+        world: &'world mut World,
+        ctx: &Context,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        self.show(ctx, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
     }
 }
 
-/// The first half of a [`IntoRoot`] chain.
-pub trait BeginRoot: Send + 'static {
-    /// The type of data that will be stored while rendering the root.
-    type Data: UiData;
+impl Root for SidePanel {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
 
-    /// Begins rendering this root container.
-    fn begin(self, world: &World, ctx: &Context) -> Self::Data;
-}
-
-/// The second half of a [`IntoRoot`] chain.
-pub trait EndRoot: Send + 'static {
-    /// The type of data that was stored while rendering the root.
-    type Data: UiData;
-
-    /// Finishes rendering this root container.
-    fn end(self, world: &World, data: Self::Data);
-}
-
-impl UiData for PreparedCentralPanel {
-    fn ui(&self) -> &egui::Ui {
-        self.content_ui()
-    }
-
-    fn ui_mut(&mut self) -> &mut egui::Ui {
-        self.content_ui_mut()
+    fn show<'world, R>(
+        self,
+        world: &'world mut World,
+        ctx: &Context,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        self.show(ctx, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
     }
 }
 
-impl IntoRoot for CentralPanel {
-    type Begin = CentralPanel;
-    type End = EndCentralPanel;
+impl Root for TopBottomPanel {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
 
-    fn into_root(self) -> (Self::Begin, Self::End) {
-        (self, EndCentralPanel)
+    fn show<'world, R>(
+        self,
+        world: &'world mut World,
+        ctx: &Context,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        self.show(ctx, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
     }
 }
 
-/// [`EndRoot`] for [`CentralPanel`].
-pub struct EndCentralPanel;
+impl Root for Window<'_> {
+    type Ui = Ui;
+    type Out<R> = Option<InnerResponse<Option<R>>>;
 
-impl BeginRoot for CentralPanel {
-    type Data = PreparedCentralPanel;
-
-    fn begin(self, _world: &World, ctx: &Context) -> Self::Data {
-        self.begin(ctx)
+    fn show<'world, R>(
+        self,
+        world: &'world mut World,
+        ctx: &Context,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        self.show(ctx, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
     }
 }
 
-impl EndRoot for EndCentralPanel {
-    type Data = PreparedCentralPanel;
+impl Root for Area {
+    type Ui = Ui;
+    type Out<R> = InnerResponse<R>;
 
-    fn end(self, _world: &World, data: Self::Data) {
-        data.end();
-    }
-}
-
-impl UiData for PreparedSidePanel {
-    fn ui(&self) -> &egui::Ui {
-        self.content_ui()
-    }
-
-    fn ui_mut(&mut self) -> &mut egui::Ui {
-        self.content_ui_mut()
-    }
-}
-
-impl IntoRoot for SidePanel {
-    type Begin = Self;
-    type End = EndSidePanel;
-
-    fn into_root(self) -> (Self::Begin, Self::End) {
-        (self, EndSidePanel)
-    }
-}
-
-/// [`EndRoot`] for [`SidePanel`].
-pub struct EndSidePanel;
-
-impl BeginRoot for SidePanel {
-    type Data = PreparedSidePanel;
-
-    fn begin(self, _world: &World, ctx: &Context) -> Self::Data {
-        self.begin(ctx)
-    }
-}
-
-impl EndRoot for EndSidePanel {
-    type Data = PreparedSidePanel;
-
-    fn end(self, _world: &World, data: Self::Data) {
-        data.end();
-    }
-}
-
-impl UiData for PreparedTopBottomPanel {
-    fn ui(&self) -> &egui::Ui {
-        self.content_ui()
-    }
-
-    fn ui_mut(&mut self) -> &mut egui::Ui {
-        self.content_ui_mut()
-    }
-}
-
-impl IntoRoot for TopBottomPanel {
-    type Begin = TopBottomPanel;
-    type End = EndTopBottomPanel;
-
-    fn into_root(self) -> (Self::Begin, Self::End) {
-        (self, EndTopBottomPanel)
-    }
-}
-
-/// [`EndRoot`] for [`TopBottomPanel`].
-pub struct EndTopBottomPanel;
-
-impl BeginRoot for TopBottomPanel {
-    type Data = PreparedTopBottomPanel;
-
-    fn begin(self, _world: &World, ctx: &Context) -> Self::Data {
-        self.begin(ctx)
-    }
-}
-
-impl EndRoot for EndTopBottomPanel {
-    type Data = PreparedTopBottomPanel;
-
-    fn end(self, _world: &World, data: Self::Data) {
-        data.end();
+    fn show<'world, R>(
+        self,
+        world: &'world mut World,
+        ctx: &Context,
+        f: impl FnOnce(WorldUi<'world, '_, Self::Ui>) -> R,
+    ) -> Self::Out<R> {
+        self.show(ctx, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
     }
 }

@@ -13,19 +13,20 @@
 
 #![warn(missing_docs)]
 
-pub mod command;
+// pub mod command;
 pub mod container;
-pub mod responder;
+pub mod ctx;
 pub mod root;
-pub(crate) mod ui;
+pub mod ui;
 pub mod widget;
 
 pub mod prelude {
     //! Commonly used traits and types.
 
-    pub use crate::command::*;
+    // pub use crate::command::*;
     pub use crate::container::*;
-    pub use crate::responder::*;
+    pub use crate::ctx::*;
     pub use crate::root::*;
+    pub use crate::ui::*;
     pub use crate::widget::*;
 }
