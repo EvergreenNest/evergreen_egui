@@ -6,7 +6,7 @@ use bevy_ecs::{
     system::{IntoSystem, RegisteredSystemError, System, SystemInput},
     world::World,
 };
-use egui::Ui;
+use egui::{InnerResponse, Ui};
 
 use crate::{
     prelude::Container,
@@ -151,6 +151,117 @@ impl WorldUi<'_, '_, Ui> {
         f: impl FnOnce(WorldUi<'_, '_, C::Ui>) -> R,
     ) -> C::Out<R> {
         container.show(self.reborrow(), f)
+    }
+
+    /// [`Ui::horizontal`] with [`World`] access.
+    pub fn horizontal<R>(&mut self, f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.horizontal(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::horizontal_centered`] with [`World`] access.
+    pub fn horizontal_centered<R>(
+        &mut self,
+        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.horizontal_centered(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::horizontal_top`] with [`World`] access.
+    pub fn horizontal_top<R>(
+        &mut self,
+        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.horizontal_top(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::horizontal_wrapped`] with [`World`] access.
+    pub fn horizontal_wrapped<R>(
+        &mut self,
+        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.horizontal_wrapped(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::vertical`] with [`World`] access.
+    pub fn vertical<R>(&mut self, f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.vertical(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::vertical_centered`] with [`World`] access.
+    pub fn vertical_centered<R>(
+        &mut self,
+        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.vertical_centered(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::vertical_top`] with [`World`] access.
+    pub fn vertical_centered_justified<R>(
+        &mut self,
+        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.vertical_centered_justified(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::centered_and_justified`] with [`World`] access.
+    pub fn centered_and_justified<R>(
+        &mut self,
+        f: impl FnOnce(WorldUi<'_, '_, Ui>) -> R,
+    ) -> InnerResponse<R> {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.centered_and_justified(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::group`] with [`World`] access.
+    pub fn columns<R>(&mut self, columns: usize, f: impl FnOnce(WorldUi<'_, '_, [Ui]>) -> R) -> R {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.columns(columns, |ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
+    }
+
+    /// [`Ui::columns`] with a constant number of columns.
+    pub fn columns_const<const NUM_COL: usize, R>(
+        &mut self,
+        f: impl FnOnce(WorldUi<'_, '_, [Ui; NUM_COL]>) -> R,
+    ) -> R {
+        let (world, ui) = self.reborrow().into_parts();
+        ui.columns_const(|ui| {
+            let ui = WorldUi::new(world, ui);
+            f(ui)
+        })
     }
 }
 
