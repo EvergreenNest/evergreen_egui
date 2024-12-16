@@ -102,6 +102,12 @@ impl<'ui, E> Draw<'ui, E> {
     }
 }
 
+impl<'ui> From<&'ui mut Ui> for Draw<'ui, ()> {
+    fn from(value: &'ui mut Ui) -> Self {
+        Draw::new(value, ())
+    }
+}
+
 impl<T> Deref for Draw<'_, T> {
     type Target = Ui;
 

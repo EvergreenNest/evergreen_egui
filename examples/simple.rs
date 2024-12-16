@@ -1,11 +1,11 @@
 use bevy::{
     app::{App, Update},
-    prelude::{In, Res, Resource, World},
+    prelude::{In, InMut, Res, Resource, World},
     DefaultPlugins,
 };
 use bevy_egui::EguiPlugin;
 use bevy_egui_commands::{ctx::WorldCtxExt, prelude::*};
-use egui::{Button, CentralPanel, Label, Layout, Response, SidePanel, TopBottomPanel};
+use egui::{Button, CentralPanel, Label, Layout, Response, SidePanel, TopBottomPanel, Ui};
 
 #[derive(Resource, Default)]
 pub struct Counter(i32);
@@ -33,8 +33,8 @@ pub fn render(world: &mut World) {
             ui.resource_mut::<Counter>().0 += 1;
         }
 
-        fn my_widget(mut draw: Draw, counter: Res<Counter>) -> Response {
-            draw.label(format!("Clicked: {}", counter.0))
+        fn my_widget(InMut(ui): InMut<Ui>, counter: Res<Counter>) -> Response {
+            ui.label(format!("Clicked: {}", counter.0))
         }
         ui.run_cached(my_widget).unwrap();
         fn my_widget_with_data(mut draw: Draw<In<i32>>, counter: Res<Counter>) -> Response {

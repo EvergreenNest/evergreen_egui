@@ -119,15 +119,17 @@ impl WorldUi<'_, '_, Ui> {
     }
 
     /// Runs the given system with this [`Ui`] instance and returns the output.
-    pub fn run_cached<S, O, M>(
+    pub fn run_cached<I, O, M, S>(
         &mut self,
         system: S,
-    ) -> Result<<S::System as System>::Out, RegisteredSystemError<Draw<'static>, O>>
+    ) -> Result<<S::System as System>::Out, RegisteredSystemError<I, O>>
     where
-        S: IntoSystem<Draw<'static>, O, M> + 'static,
+        S: IntoSystem<I, O, M> + 'static,
+        I: for<'a> SystemInput<Inner<'a>: From<&'a mut Ui>> + 'static,
         O: 'static,
     {
-        self.run_cached_with(system, ())
+        self.world
+            .run_system_cached_with(system, I::Inner::from(self.ui))
     }
 
     /// Runs the given system with this [`Ui`] instance and the given extra data,
