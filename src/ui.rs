@@ -132,8 +132,8 @@ impl WorldUi<'_, '_, Ui> {
             .run_system_cached_with(system, I::Inner::from(self.ui))
     }
 
-    /// Runs the given system with this [`Ui`] instance and the given extra data,
-    /// and returns the output.
+    /// Runs the given system with this [`Ui`] instance and the given extra data
+    /// `E`, and returns the output.
     pub fn run_cached_with<'s: 'e, 'e, S, E, O, M>(
         &'s mut self,
         system: S,

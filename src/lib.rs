@@ -1,15 +1,5 @@
-//! An alternative integration of the immediate mode GUI crate `egui` with the
-//! Bevy game engine.
-//!
-//! # Why not use `bevy_egui`?
-//!
-//! `bevy_egui`'s current way of integrating `egui` works well enough for simple
-//! cases, but when you want to create more complex UIs, you'll quickly run into
-//! limitations:
-//!
-//! - You're required to write your UI code in a single exclusive system that
-//!   takes a `&mut World`. This makes it difficult to split your UI code into
-//!   smaller, reusable components.
+//! An improved integration of the immediate mode GUI crate [`egui`] with the
+//! Bevy game engine. Builds off of the [`bevy_egui`] crate.
 
 #![warn(missing_docs)]
 
