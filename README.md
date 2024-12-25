@@ -1,3 +1,3 @@
-# bevy_egui_commands
+# `evergreen_egui`
 
-A more ergonomic bevy+egui integration using Commands.
+An improved integration experiment with `bevy_egui`.
