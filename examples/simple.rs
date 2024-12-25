@@ -4,8 +4,8 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_egui::EguiPlugin;
-use bevy_egui_commands::{ctx::WorldCtxExt, prelude::*};
 use egui::{Button, CentralPanel, Label, Layout, Response, SidePanel, TopBottomPanel, Ui};
+use evergreen_egui::{ctx::WorldCtxExt, prelude::*};
 
 #[derive(Resource, Default)]
 pub struct Counter(i32);
