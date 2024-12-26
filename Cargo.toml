@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_ecs = "0.15"
-bevy_log = "0.15"
+bevy_ecs = { git = "https://github.com/bevyengine/bevy.git", rev = "f9c8f51" }
+bevy_log = { git = "https://github.com/bevyengine/bevy.git", rev = "f9c8f51" }
 variadics_please = "1.1"
-bevy_egui = "0.31"
-egui = "0.29"
+bevy_egui = { git = "https://github.com/ItsDoot/bevy_egui.git", rev = "3f8e5c3"}
+egui = "0.30"
 
 [dev-dependencies]
-bevy = "0.15"
+bevy = { git = "https://github.com/bevyengine/bevy.git", rev = "f9c8f51" }
